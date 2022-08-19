@@ -96,7 +96,7 @@ class JanelaInsercao extends JFrame{
         componentes();
 
         try {
-            pStmt = con.prepareStatement("INSERT INTO TESTE DOCERIA (?,?,?)");
+            pStmt = con.prepareStatement("INSERT INTO DOCERIA VALUES (?,?,?)");
             insere.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -104,11 +104,13 @@ class JanelaInsercao extends JFrame{
                         pStmt.setString(1, nome.getText());
                         pStmt.setInt(2, Integer.parseInt(valor.getText()));
                         pStmt.setInt(3, Integer.parseInt(qtd.getText()));
+                        System.out.println("Nome: " + nome.getText());
                         nome.setText("");
                         valor.setText("");
                         qtd.setText("");
+                        pStmt.executeUpdate();
                     } catch (SQLException ex) {
-                        throw new RuntimeException(ex);
+                        JOptionPane.showMessageDialog(null, "Problema interno.\n"+ex, "Erro", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             });
@@ -149,18 +151,49 @@ class JanelaInsercao extends JFrame{
 
 class JanelaVisualizacao extends JFrame{
     PreparedStatement pStmt;
-
+    JPanel painelResultados, painelBusca;
+    JTextField busca;
+    JButton pesquisar;
+    JTextArea resultados;
     public JanelaVisualizacao(Connection con){
         super("Visualizacao de dados");
+//        setLayout(new GridLayout(2, 1));
+        setLayout(new FlowLayout());
         try{
-            pStmt = con.prepareStatement("SELECT * FROM DOCERIA");
-            ResultSet rs = pStmt.executeQuery();
-            while(rs.next()){
-                String s = rs.getString(1);
-            }
-        } catch(Exception e){
+            componentes();
+            pesquisar.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        PreparedStatement pStmt = con.prepareStatement("SELECT * FROM DOCERIA WHERE NOME LIKE ?");
+                        pStmt.setString(1, busca.getText());
+                        ResultSet rs = pStmt.executeQuery();
+                        busca.setText("");
+                        resultados.setText("");
+                        while(rs.next()){
+                            String name = rs.getString(1);
+                            int value = rs.getInt(2);
+                            int quantity = rs.getInt(3);
+                            resultados.append(name + "\t" + value + "\t" + quantity + "\n");
+                            System.out.println(name + "\t" + value + "\t" + quantity);
+                        }
+                    } catch (Exception ex){}
+                }
+            });
+            pack();
+            setVisible(true);
+        } catch (Exception e){}
+    }
 
-        }
+    public void componentes(){
+        painelBusca = new JPanel(new FlowLayout());
+        painelBusca.add(busca = new JTextField(30));
+        painelBusca.add(pesquisar = new JButton("Busca"));
+
+        painelResultados = new JPanel(new FlowLayout());
+        painelResultados.add(resultados = new JTextArea(30, 50));
+
+        add(painelBusca);
+        add(painelResultados);
     }
 }
-
