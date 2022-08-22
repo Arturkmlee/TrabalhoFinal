@@ -1,6 +1,5 @@
-import jdk.swing.interop.SwingInterOpUtils;
-
 import javax.swing.*;
+import javax.xml.transform.Result;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,7 +10,7 @@ public class TrabalhoFinal extends JFrame implements ActionListener {
     Statement stmt;
 
     JPanel painelPrincipal = new JPanel(new GridLayout(3, 1));
-    JButton cria, insere, visualiza;
+    JButton visualiza, insere, procura;
     JLabel nome = new JLabel("DOCERIA DOM RAFAEL");
 
     public TrabalhoFinal(){
@@ -28,24 +27,37 @@ public class TrabalhoFinal extends JFrame implements ActionListener {
     }
 
     public void criaPrincipal(){
-        cria = new JButton("Criar Banco de Dados");
         insere = new JButton("Inserir dados");
-        visualiza = new JButton("Visualizar dados");
+        visualiza = new JButton("Visualizar Banco de Dados");
+        procura = new JButton("Procurar dados");
 
-        painelPrincipal.add(cria);
         painelPrincipal.add(insere);
         painelPrincipal.add(visualiza);
+        painelPrincipal.add(procura);
 
-        cria.addActionListener(this);
-        insere.addActionListener(this);
         visualiza.addActionListener(this);
+        insere.addActionListener(this);
+        procura.addActionListener(this);
     }
+
+    public void criaBancoDeDados(){
+        try{
+            stmt.executeUpdate("CREATE TABLE DOCERIA (NOME VARCHAR(30), VALOR INT, QUANTIDADE INT)");
+            JOptionPane.showMessageDialog(null, "A tabela foi criada com sucesso.", "Tabela criada", JOptionPane.INFORMATION_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, "Já existe um banco de dados nesse sistema!.\n", "Erro", JOptionPane.INFORMATION_MESSAGE);
+        } catch (NullPointerException ex) {
+            JOptionPane.showMessageDialog(null, "Erro na criação do banco: \n" + ex, "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
 
     public void iniciaBD(){
         try{
             Class.forName("org.hsql.jdbcDriver");
             con = DriverManager.getConnection("jdbc:HypersonicSQL:hsql://localhost:8080", "sa", "");
             stmt = con.createStatement();
+            criaBancoDeDados();
         } catch (ClassNotFoundException ex) {
             JOptionPane.showMessageDialog(null, "O drive de Banco de Dados não foi encontrado.\n"+ex, "Erro", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
@@ -58,23 +70,17 @@ public class TrabalhoFinal extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if(cria.equals(e.getSource())){
-            try{
-                stmt.executeUpdate("CREATE TABLE DOCERIA (NOME VARCHAR(30), VALOR INT, QUANTIDADE INT)");
-                JOptionPane.showMessageDialog(null, "A tabela foi criada com sucesso.", "Tabela criada", JOptionPane.INFORMATION_MESSAGE);
-            } catch (SQLException ex) {
-                JOptionPane.showMessageDialog(null, "Erro na criação da tabela.\n" + ex, "Erro", JOptionPane.ERROR_MESSAGE);
-            } catch (NullPointerException ex) {
-                JOptionPane.showMessageDialog(null, "Erro: \n" + ex, "Erro", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-        else if (insere.equals(e.getSource())){
+        if (insere.equals(e.getSource())){
             System.out.println("Botao Insere");
             new JanelaInsercao(con);
         }
         else if (visualiza.equals(e.getSource())){
             System.out.println("Botao Visualiza");
-            new JanelaVisualizacao(con);
+            new JanelaVisualiza(con);
+        }
+        else if (procura.equals(e.getSource())){
+            System.out.println("Botao Visualiza");
+            new JanelaProcura(con);
         }
     }
 
@@ -149,13 +155,43 @@ class JanelaInsercao extends JFrame{
 
 }
 
-class JanelaVisualizacao extends JFrame{
+class JanelaVisualiza extends JFrame{
+    JTextArea ta;
+    Statement stmt;
+
+    public JanelaVisualiza(Connection con){
+        super("Janela de Visualização");
+        setLayout(new FlowLayout());
+        JPanel tela = new JPanel(new FlowLayout());
+        tela.add(ta = new JTextArea(20, 50));
+        try{
+            stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM DOCERIA");
+            while(rs.next()){
+                String name = rs.getString(1);
+                int value = rs.getInt(2);
+                int quantity = rs.getInt(3);
+                ta.append(name + "\t" + value + "\t" + quantity + "\n");
+                System.out.println(name + "\t" + value + "\t" + quantity);
+            }
+        } catch(Exception e){
+            System.out.println("Erro ao tentar visualizar os dados");
+            System.exit(1);
+        }
+
+        add(tela);
+        pack();
+        setVisible(true);
+    }
+}
+
+class JanelaProcura extends JFrame{
     PreparedStatement pStmt;
     JPanel painelResultados, painelBusca;
     JTextField busca;
     JButton pesquisar;
     JTextArea resultados;
-    public JanelaVisualizacao(Connection con){
+    public JanelaProcura(Connection con){
         super("Visualizacao de dados");
 //        setLayout(new GridLayout(2, 1));
         setLayout(new FlowLayout());
